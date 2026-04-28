@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #0612b8;
+      background: #070b1a;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -17,106 +17,279 @@
       color: #fff;
       overflow: hidden;
     }
-    header { text-align: center; margin-bottom: 5px; }
-    .brand { font-size:.58rem;letter-spacing:.45em;color:#FE5621;text-transform:uppercase;font-weight:700; }
-    h1 { font-size:2rem;font-weight:900;text-transform:uppercase;letter-spacing:.18em;color:#c5f200;text-shadow:0 0 24px #c5f200cc,0 0 50px #c5f20055;line-height:1; }
-    .subtitle { font-size:.6rem;letter-spacing:.28em;color:#ff6eb4;text-transform:uppercase;margin-top:2px; }
-    #hud { display:flex;gap:2rem;margin:5px 0;font-size:.75rem;letter-spacing:.12em;color:#7788dd;text-transform:uppercase;align-items:center; }
-    #hud strong { color:#FE5621;font-size:.95rem; }
-    #muteBtn { background:none;border:1px solid #FE5621;color:#FE5621;font-size:.65rem;letter-spacing:.1em;padding:2px 8px;border-radius:99px;cursor:pointer;text-transform:uppercase; }
-    #muteBtn:hover { background:#FE562222; }
-    canvas { display:block;border-radius:6px; }
-    #msg { margin-top:6px;font-size:.9rem;color:#c5f200;text-shadow:0 0 10px #c5f200;min-height:1.3rem;text-align:center;letter-spacing:.07em;text-transform:uppercase; }
-    footer { margin-top:6px;font-size:.5rem;letter-spacing:.3em;color:#1a2255;text-transform:uppercase; }
+    header { text-align: center; margin-bottom: 6px; }
+    .brand {
+      font-size: 0.58rem;
+      letter-spacing: 0.45em;
+      color: #FE5621;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #c5f200;
+      text-shadow: 0 0 24px #c5f200cc, 0 0 50px #c5f20055;
+      line-height: 1;
+    }
+    .subtitle {
+      font-size: 0.6rem;
+      letter-spacing: 0.28em;
+      color: #ff6eb4;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    #hud {
+      display: flex;
+      gap: 2rem;
+      margin: 5px 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      color: #445;
+      text-transform: uppercase;
+      align-items: center;
+    }
+    #hud strong { color: #FE5621; font-size: 0.95rem; }
+    #muteBtn {
+      background: none;
+      border: 1px solid #FE5621;
+      color: #FE5621;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 2px 8px;
+      border-radius: 99px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    #muteBtn:hover { background: #FE562122; }
+    canvas { display: block; border-radius: 5px; }
+    #msg {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #c5f200;
+      text-shadow: 0 0 10px #c5f200;
+      min-height: 1.3rem;
+      text-align: center;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    footer {
+      margin-top: 7px;
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      color: #1c1c2c;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
+
 <header>
   <div class="brand">Mountain Culture Beer Co.</div>
   <h1>Juice Trip</h1>
   <div class="subtitle">Cockatoo Rush</div>
 </header>
+
 <div id="hud">
   <div>Score <strong id="score">0</strong></div>
   <div>Lives <strong id="lives">3</strong></div>
   <div>Level <strong id="level">1</strong></div>
   <button id="muteBtn">🔊 Music</button>
 </div>
+
 <canvas id="c"></canvas>
-<div id="msg">Loading…</div>
+<div id="msg">Press ENTER or Space to start</div>
 <footer>Eat the fruit · Feel the juice · Mountain Culture 🦜</footer>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  FUNKY MUSIC ENGINE
+//  FUNKY MUSIC ENGINE  (Web Audio API)
 // ═══════════════════════════════════════════════════════════════
 class FunkEngine {
-  constructor(){this.ac=null;this.master=null;this.step=0;this.nextTime=0;this.running=false;this.muted=false;this.timerId=null;}
-  init(){if(this.ac)return;this.ac=new(window.AudioContext||window.webkitAudioContext)();this.master=this.ac.createGain();this.master.gain.value=0.52;this.master.connect(this.ac.destination);}
-  midi(n){return 440*Math.pow(2,(n-69)/12);}
-  BASS=[41,0,44,41,0,48,0,44,53,0,51,0,48,44,0,41];
-  LEAD=[65,0,0,68,0,70,0,0,65,0,63,0,0,65,0,70];
-  CHORD=new Set([0,8]);
-  osc(freq,type,t,dur,vol,lp=2200){const o=this.ac.createOscillator(),g=this.ac.createGain(),f=this.ac.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;f.Q.value=1.8;o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.008);g.gain.exponentialRampToValueAtTime(vol*0.5,t+dur*0.45);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(f);f.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+0.04);}
-  wahBass(freq,t,dur){const o=this.ac.createOscillator(),f=this.ac.createBiquadFilter(),g=this.ac.createGain();o.type='sawtooth';o.frequency.value=freq;f.type='bandpass';f.Q.value=5;f.frequency.setValueAtTime(180,t);f.frequency.exponentialRampToValueAtTime(1400,t+dur*0.25);f.frequency.exponentialRampToValueAtTime(350,t+dur*0.75);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.52,t+0.01);g.gain.exponentialRampToValueAtTime(0.28,t+dur*0.5);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(f);f.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+0.05);}
-  kick(t){const o=this.ac.createOscillator(),g=this.ac.createGain();o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(0.5,t+0.18);g.gain.setValueAtTime(1.3,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+0.25);}
-  snare(t){const sr=this.ac.sampleRate,buf=this.ac.createBuffer(1,sr*0.14,sr),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=this.ac.createBufferSource();n.buffer=buf;const f=this.ac.createBiquadFilter();f.type='bandpass';f.frequency.value=3800;f.Q.value=0.8;const g=this.ac.createGain();g.gain.setValueAtTime(0.65,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);n.connect(f);f.connect(g);g.connect(this.master);n.start(t);n.stop(t+0.15);this.osc(220,'triangle',t,0.07,0.3,800);}
-  hihat(t,open=false){const sr=this.ac.sampleRate,dur=open?0.1:0.035,buf=this.ac.createBuffer(1,Math.ceil(sr*dur),sr),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=this.ac.createBufferSource();n.buffer=buf;const f=this.ac.createBiquadFilter();f.type='highpass';f.frequency.value=9500;const g=this.ac.createGain();g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);n.connect(f);f.connect(g);g.connect(this.master);n.start(t);n.stop(t+dur+0.01);}
-  schedule(){if(!this.running)return;const SD=60/120/4,AHEAD=0.12;while(this.nextTime<this.ac.currentTime+AHEAD){const s=this.step%16,t=this.nextTime;if(this.BASS[s])this.wahBass(this.midi(this.BASS[s]),t,SD*0.88);if(this.LEAD[s])this.osc(this.midi(this.LEAD[s]),'square',t,SD*1.3,0.07,2400);if(this.CHORD.has(s))[65,68,72,75].forEach(n=>this.osc(this.midi(n),'square',t,SD*0.35,0.04,1800));if(s===0||s===8)this.kick(t);if(s===4||s===12)this.snare(t);if(s%2===0)this.hihat(t,s===6||s===14);if(s===3||s===7||s===11||s===15)this.hihat(t,false);this.step++;this.nextTime+=SD;}this.timerId=setTimeout(()=>this.schedule(),AHEAD*500);}
-  start(){this.init();if(this.ac.state==='suspended')this.ac.resume();if(this.running)return;this.running=true;this.nextTime=this.ac.currentTime+0.05;this.schedule();}
-  stop(){this.running=false;clearTimeout(this.timerId);}
-  toggleMute(){this.muted=!this.muted;this.master.gain.value=this.muted?0:0.52;return this.muted;}
+  constructor() {
+    this.ac = null;
+    this.master = null;
+    this.step = 0;
+    this.nextTime = 0;
+    this.running = false;
+    this.muted = false;
+    this.timerId = null;
+  }
+
+  init() {
+    if (this.ac) return;
+    this.ac = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.ac.createGain();
+    this.master.gain.value = 0.55;
+    this.master.connect(this.ac.destination);
+  }
+
+  midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+
+  // 16-step patterns at 120 BPM, 16th notes — F minor funk
+  //  41=F2  44=Ab2  46=Bb2  48=C3  51=Eb3  53=F3  56=Ab3  58=Bb3
+  BASS  = [41, 0, 44,41, 0,48, 0,44, 53, 0,51, 0,48,44, 0,41];
+  LEAD  = [65, 0, 0,68, 0,70, 0, 0, 65, 0,63, 0, 0,65, 0,70]; // F4=65
+  CHORD_STEPS = new Set([0, 8]);  // Fm7 stab on beats 1 & 3
+
+  osc(freq, type, start, dur, vol, lpHz = 2200) {
+    const o = this.ac.createOscillator();
+    const g = this.ac.createGain();
+    const f = this.ac.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = lpHz; f.Q.value = 1.8;
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(vol, start + 0.008);
+    g.gain.exponentialRampToValueAtTime(vol * 0.55, start + dur * 0.45);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(f); f.connect(g); g.connect(this.master);
+    o.start(start); o.stop(start + dur + 0.04);
+  }
+
+  wahBass(freq, t, dur) {
+    const o = this.ac.createOscillator();
+    const f = this.ac.createBiquadFilter();
+    const g = this.ac.createGain();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    f.type = 'bandpass'; f.Q.value = 5;
+    f.frequency.setValueAtTime(180, t);
+    f.frequency.exponentialRampToValueAtTime(1400, t + dur * 0.25);
+    f.frequency.exponentialRampToValueAtTime(350, t + dur * 0.75);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.55, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.3, t + dur * 0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  kick(t) {
+    const o = this.ac.createOscillator();
+    const g = this.ac.createGain();
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(0.5, t + 0.18);
+    g.gain.setValueAtTime(1.4, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 0.25);
+  }
+
+  snare(t) {
+    // Noise body
+    const sr = this.ac.sampleRate;
+    const buf = this.ac.createBuffer(1, sr * 0.14, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const n = this.ac.createBufferSource(); n.buffer = buf;
+    const f = this.ac.createBiquadFilter(); f.type='bandpass'; f.frequency.value=3800; f.Q.value=0.8;
+    const g = this.ac.createGain();
+    g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    n.connect(f); f.connect(g); g.connect(this.master);
+    n.start(t); n.stop(t + 0.15);
+    // Tonal crack
+    this.osc(220, 'triangle', t, 0.07, 0.35, 800);
+  }
+
+  hihat(t, open = false) {
+    const sr = this.ac.sampleRate;
+    const dur = open ? 0.1 : 0.035;
+    const buf = this.ac.createBuffer(1, Math.ceil(sr * dur), sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const n = this.ac.createBufferSource(); n.buffer = buf;
+    const f = this.ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=9500;
+    const g = this.ac.createGain();
+    g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f); f.connect(g); g.connect(this.master);
+    n.start(t); n.stop(t + dur + 0.01);
+  }
+
+  schedule() {
+    if (!this.running) return;
+    const SD = 60 / 120 / 4; // 16th-note duration at 120 BPM
+    const AHEAD = 0.12;
+
+    while (this.nextTime < this.ac.currentTime + AHEAD) {
+      const s = this.step % 16;
+      const t = this.nextTime;
+
+      if (this.BASS[s])   this.wahBass(this.midi(this.BASS[s]), t, SD * 0.88);
+      if (this.LEAD[s])   this.osc(this.midi(this.LEAD[s]), 'square', t, SD*1.3, 0.07, 2400);
+      if (this.CHORD_STEPS.has(s)) {
+        [65,68,72,75].forEach(n => this.osc(this.midi(n), 'square', t, SD*0.35, 0.045, 1800));
+      }
+
+      if (s === 0 || s === 8)            this.kick(t);
+      if (s === 4 || s === 12)           this.snare(t);
+      if (s % 2 === 0)                   this.hihat(t, s === 6 || s === 14);
+      if (s === 3 || s === 7 || s === 11 || s === 15) this.hihat(t, false);
+
+      this.step++;
+      this.nextTime += SD;
+    }
+    this.timerId = setTimeout(() => this.schedule(), AHEAD * 500);
+  }
+
+  start() {
+    this.init();
+    if (this.ac.state === 'suspended') this.ac.resume();
+    if (this.running) return;
+    this.running = true;
+    this.nextTime = this.ac.currentTime + 0.05;
+    this.schedule();
+  }
+
+  stop() {
+    this.running = false;
+    clearTimeout(this.timerId);
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    this.master.gain.value = this.muted ? 0 : 0.55;
+    return this.muted;
+  }
 }
+
 const FUNK = new FunkEngine();
-document.getElementById('muteBtn').addEventListener('click',()=>{
-  document.getElementById('muteBtn').textContent=FUNK.toggleMute()?'🔇 Music':'🔊 Music';
+
+document.getElementById('muteBtn').addEventListener('click', () => {
+  const m = FUNK.toggleMute();
+  document.getElementById('muteBtn').textContent = m ? '🔇 Music' : '🔊 Music';
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  IMAGE LOADING  (used for border decorations only)
-// ═══════════════════════════════════════════════════════════════
-const IMGS = {};
-function loadImages(done){
-  const SRC={
-    bird:   'JT peace_sign.png',
-    flames: 'JT Socials April paraphernalia-07.png',
-    shades: 'JT Socials April paraphernalia-08.png',
-    swirl:  'JT swirl-01.png',
-    juice:  'JT_Juice.png',
-    can:    'JT-Can-shadow.png',
-  };
-  let rem=Object.keys(SRC).length;
-  function dec(){if(--rem===0)done();}
-  Object.entries(SRC).forEach(([k,src])=>{
-    const img=new Image();
-    img.onload=()=>{IMGS[k]=img;dec();};
-    img.onerror=()=>dec();
-    img.src=src;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  CONSTANTS
+//  GAME CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 const CELL = 24;
 const COLS = 21;
 const ROWS = 21;
-const PAD  = 82;   // border around maze for illustrations
 const FPS  = 8;
 
+// Juice Trip palette
 const C = {
-  bg:        '#0612b8',
-  wall:      '#050e8a',
+  bg:        '#070b1a',
+  wall:      '#0e0a32',
   wallGlow:  '#FE5621',
   dot:       '#ff6eb4',
   power:     '#c5f200',
+  // Bird (Juice Trip cockatoo mascot)
+  birdBody:  '#1a1060',
+  birdFlame: '#FF3300',
+  birdCrest: '#FFD700',
+  birdBeak:  '#FF3300',
+  birdShades:'#1E90FF',
+  // Skeletons
   bone:      '#e8dfc8',
+  boneShadow:'#a09070',
   skullGlow: ['#ff6eb4','#FE5621','#c5f200','#7de8ff'],
 };
 
 const FRUITS = ['🍊','🍋','🫐','🍇','🍓','🍑','🥝','🍍','🍈','🍒'];
-const MAX_FRUITS = 5;
 
+// 0=open 1=wall 2=dot 3=power 4=ghost-house 5=ghost-door
 const T = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
@@ -142,386 +315,536 @@ const T = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-//  CANVAS  (maze + PAD border on all sides)
+//  CANVAS
 // ═══════════════════════════════════════════════════════════════
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
-const CW = COLS*CELL + PAD*2;
-const CH = ROWS*CELL + PAD*2;
-canvas.width  = CW;
-canvas.height = CH;
-
-// Convert maze row/col to canvas pixel (top-left of cell)
-const px = c => c*CELL + PAD;
-const py = r => r*CELL + PAD;
-// Cell centre
-const cx = c => c*CELL + PAD + CELL/2;
-const cy = r => r*CELL + PAD + CELL/2;
+canvas.width  = COLS * CELL;
+canvas.height = ROWS * CELL;
 
 // ═══════════════════════════════════════════════════════════════
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════════
 let map, dotCount, score, lives, level, state;
-let bird, skeletons, fruits, fruitSpawnTimer, powerTimer;
-let tick=0, lastTs=0;
+let bird, skeletons, fruitCell, fruitTimer, powerTimer;
+let tick = 0, lastTs = 0;
 
-function hud(){document.getElementById('score').textContent=score;document.getElementById('lives').textContent=lives;document.getElementById('level').textContent=level;}
-function msg(t){document.getElementById('msg').textContent=t;}
-function wrap(v,max){return((v%max)+max)%max;}
-function isWall(r,c){r=wrap(r,ROWS);c=wrap(c,COLS);return map[r][c]===1;}
+function hud() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('level').textContent = level;
+}
+function msg(t) { document.getElementById('msg').textContent = t; }
+
+function wrap(v, max) { return ((v % max) + max) % max; }
+function isWall(r, c) {
+  r = wrap(r, ROWS); c = wrap(c, COLS);
+  return map[r][c] === 1;
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════
-function initGame(){score=0;lives=3;level=1;initLevel();hud();}
-
-function initLevel(){
-  map=T.map(r=>[...r]);
-  dotCount=0;
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
-    if(map[r][c]===2||map[r][c]===3)dotCount++;
-  fruits=[];fruitSpawnTimer=0;powerTimer=0;
-  spawnBird();spawnSkeletons();
-  // Seed initial scattered fruits
-  for(let i=0;i<MAX_FRUITS;i++)trySpawnFruit();
-  state='ready';
+function initGame() {
+  score = 0; lives = 3; level = 1;
+  initLevel();
+  hud();
 }
 
-function spawnBird(){bird={r:16,c:10,dr:0,dc:-1,qdr:0,qdc:-1,mouth:0.22};}
-
-function spawnSkeletons(){
-  skeletons=[makeSkel(10,10,0),makeSkel(10,9,1),makeSkel(10,11,2),makeSkel(10,10,3)];
-  skeletons[0].exitDelay=0;skeletons[1].exitDelay=32;skeletons[2].exitDelay=64;skeletons[3].exitDelay=96;
+function initLevel() {
+  map = T.map(r => [...r]);
+  dotCount = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (map[r][c] === 2 || map[r][c] === 3) dotCount++;
+  fruitCell = null; fruitTimer = 0; powerTimer = 0;
+  spawnBird();
+  spawnSkeletons();
+  state = 'ready';
 }
-function makeSkel(r,c,ci){return{r,c,dr:-1,dc:0,ci,mode:'house',frighTimer:0,exitDelay:0};}
 
-// Pick a random open cell for a fruit (avoids walls, ghost house, other fruits, bird)
-function trySpawnFruit(){
-  const candidates=[];
-  for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++){
-    const v=map[r][c];
-    if(v!==0&&v!==2&&v!==3)continue;          // must be traversable
-    if(r>=9&&r<=12&&c>=7&&c<=13)continue;     // avoid ghost house area
-    if(fruits.some(f=>f.r===r&&f.c===c))continue;
-    if(r===bird.r&&c===bird.c)continue;
-    candidates.push({r,c});
-  }
-  if(!candidates.length)return;
-  const pos=candidates[Math.floor(Math.random()*candidates.length)];
-  const emoji=FRUITS[Math.floor(Math.random()*FRUITS.length)];
-  fruits.push({...pos,emoji,age:0});
+function spawnBird() {
+  bird = { r:16, c:10, dr:0, dc:-1, qdr:0, qdc:-1, mouth:0.22 };
+}
+
+function spawnSkeletons() {
+  skeletons = [
+    makeSkel(10,10,0), makeSkel(10,9,1), makeSkel(10,11,2), makeSkel(10,10,3),
+  ];
+  skeletons[0].exitDelay = 0;
+  skeletons[1].exitDelay = 32;
+  skeletons[2].exitDelay = 64;
+  skeletons[3].exitDelay = 96;
+}
+
+function makeSkel(r, c, ci) {
+  return { r, c, dr:-1, dc:0, ci, mode:'house', frighTimer:0, exitDelay:0 };
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  GAME LOGIC
 // ═══════════════════════════════════════════════════════════════
-function step(){
-  if(state!=='playing')return;
+function step() {
+  if (state !== 'playing') return;
   tick++;
   moveBird();
   skeletons.forEach(moveSkel);
   checkHits();
 
-  // Age fruits; cull old ones; spawn replacements
-  fruits.forEach(f=>f.age++);
-  fruits=fruits.filter(f=>f.age<320);
-  if(++fruitSpawnTimer>50&&fruits.length<MAX_FRUITS){trySpawnFruit();fruitSpawnTimer=0;}
+  fruitTimer++;
+  if (fruitTimer === 120 && !fruitCell)
+    fruitCell = { r:16, c:10, emoji: FRUITS[level % FRUITS.length] };
+  if (fruitTimer > 260) { fruitCell = null; fruitTimer = 0; }
+  if (powerTimer > 0) powerTimer--;
 
-  if(powerTimer>0)powerTimer--;
-
-  if(dotCount<=0){
-    state='levelup';
-    msg(`Level ${level+1} — Stay juicy! 🥝`);
-    setTimeout(()=>{level++;hud();initLevel();state='playing';msg('');},2200);
+  if (dotCount <= 0) {
+    state = 'levelup';
+    msg(`Level ${level + 1} — Stay juicy! 🥝`);
+    setTimeout(() => { level++; hud(); initLevel(); state = 'playing'; msg(''); }, 2200);
   }
 }
 
-function moveBird(){
-  if(!isWall(bird.r+bird.qdr,bird.c+bird.qdc)){bird.dr=bird.qdr;bird.dc=bird.qdc;}
-  if(!isWall(bird.r+bird.dr,bird.c+bird.dc)){
-    bird.r=wrap(bird.r+bird.dr,ROWS);bird.c=wrap(bird.c+bird.dc,COLS);
+function moveBird() {
+  if (!isWall(bird.r + bird.qdr, bird.c + bird.qdc)) {
+    bird.dr = bird.qdr; bird.dc = bird.qdc;
   }
-  bird.mouth=bird.mouth>0?bird.mouth-0.07:0.28;
+  if (!isWall(bird.r + bird.dr, bird.c + bird.dc)) {
+    bird.r = wrap(bird.r + bird.dr, ROWS);
+    bird.c = wrap(bird.c + bird.dc, COLS);
+  }
+  // Mouth flap
+  bird.mouth = bird.mouth > 0 ? bird.mouth - 0.06 : 0.28;
 
-  const cell=map[bird.r][bird.c];
-  if(cell===2){map[bird.r][bird.c]=0;score+=10;dotCount--;hud();}
-  else if(cell===3){
-    map[bird.r][bird.c]=0;score+=50;dotCount--;
-    powerTimer=200;
-    skeletons.forEach(s=>{if(s.mode!=='house'&&s.mode!=='eaten'){s.mode='frightened';s.frighTimer=200;s.dr=-s.dr;s.dc=-s.dc;}});
+  const cell = map[bird.r][bird.c];
+  if (cell === 2) { map[bird.r][bird.c] = 0; score += 10; dotCount--; hud(); }
+  else if (cell === 3) {
+    map[bird.r][bird.c] = 0; score += 50; dotCount--;
+    powerTimer = 200;
+    skeletons.forEach(s => {
+      if (s.mode !== 'house' && s.mode !== 'eaten') {
+        s.mode = 'frightened'; s.frighTimer = 200;
+        s.dr = -s.dr; s.dc = -s.dc;
+      }
+    });
     hud();
   }
-
-  // Eat any fruit on this cell
-  const before=fruits.length;
-  fruits=fruits.filter(f=>!(f.r===bird.r&&f.c===bird.c));
-  if(fruits.length<before){score+=200*level;hud();}
+  if (fruitCell && bird.r === fruitCell.r && bird.c === fruitCell.c) {
+    score += 200 * level; fruitCell = null; fruitTimer = 0; hud();
+  }
 }
 
-const DIRS4=[{dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}];
-function moveSkel(s){
-  if(s.mode==='house'){if(--s.exitDelay<=0){if(s.r>8)s.r--;else{s.r=8;s.c=10;s.dr=-1;s.dc=0;s.mode='scatter';}}return;}
-  if(s.mode==='frightened'&&--s.frighTimer<=0)s.mode='scatter';
-  if(s.mode==='eaten'&&s.r===10&&s.c===10){s.mode='house';s.exitDelay=40;return;}
-  let tR,tC;
-  if(s.mode==='eaten'){tR=10;tC=10;}
-  else if(s.mode==='chase'){tR=bird.r;tC=bird.c;}
-  else if(s.mode==='scatter'){tR=s.ci<2?1:ROWS-2;tC=s.ci%2===0?1:COLS-2;}
-  else{tR=bird.r;tC=bird.c;}
-  const rev={dr:-s.dr,dc:-s.dc};
-  let opts=DIRS4.filter(d=>{
-    if(d.dr===rev.dr&&d.dc===rev.dc)return false;
-    const nr=wrap(s.r+d.dr,ROWS),nc=wrap(s.c+d.dc,COLS);
-    if(isWall(nr,nc))return false;
-    if(s.mode!=='eaten'&&map[nr][nc]===4)return false;
+const DIRS4 = [{dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}];
+
+function moveSkel(s) {
+  if (s.mode === 'house') {
+    if (--s.exitDelay <= 0) {
+      if (s.r > 8) s.r--;
+      else { s.r = 8; s.c = 10; s.dr = -1; s.dc = 0; s.mode = 'scatter'; }
+    }
+    return;
+  }
+  if (s.mode === 'frightened' && --s.frighTimer <= 0) s.mode = 'scatter';
+  if (s.mode === 'eaten' && s.r === 10 && s.c === 10) {
+    s.mode = 'scatter'; s.exitDelay = 40; s.mode = 'house'; return;
+  }
+
+  let tR, tC;
+  if      (s.mode === 'eaten')     { tR=10; tC=10; }
+  else if (s.mode === 'chase')     { tR=bird.r; tC=bird.c; }
+  else if (s.mode === 'scatter')   { tR = s.ci<2?1:ROWS-2; tC = s.ci%2===0?1:COLS-2; }
+  else /* frightened */            { tR=bird.r; tC=bird.c; }
+
+  const rev = {dr:-s.dr, dc:-s.dc};
+  let opts = DIRS4.filter(d => {
+    if (d.dr===rev.dr && d.dc===rev.dc) return false;
+    const nr=wrap(s.r+d.dr,ROWS), nc=wrap(s.c+d.dc,COLS);
+    if (isWall(nr,nc)) return false;
+    if (s.mode!=='eaten' && map[nr][nc]===4) return false;
     return true;
   });
-  if(!opts.length)opts=[rev];
+  if (!opts.length) opts = [rev];
+
   let chosen;
-  if(s.mode==='frightened'){chosen=opts[Math.floor(Math.random()*opts.length)];}
-  else{opts.sort((a,b)=>{const da=Math.abs(wrap(s.r+a.dr,ROWS)-tR)+Math.abs(wrap(s.c+a.dc,COLS)-tC),db=Math.abs(wrap(s.r+b.dr,ROWS)-tR)+Math.abs(wrap(s.c+b.dc,COLS)-tC);return da-db;});chosen=opts[0];}
-  s.dr=chosen.dr;s.dc=chosen.dc;s.r=wrap(s.r+s.dr,ROWS);s.c=wrap(s.c+s.dc,COLS);
-  if(tick%350<200&&(s.mode==='scatter'||s.mode==='chase'))s.mode='chase';
-  else if(s.mode==='chase')s.mode='scatter';
+  if (s.mode === 'frightened') {
+    chosen = opts[Math.floor(Math.random()*opts.length)];
+  } else {
+    opts.sort((a,b) => {
+      const da = Math.abs(wrap(s.r+a.dr,ROWS)-tR)+Math.abs(wrap(s.c+a.dc,COLS)-tC);
+      const db = Math.abs(wrap(s.r+b.dr,ROWS)-tR)+Math.abs(wrap(s.c+b.dc,COLS)-tC);
+      return da-db;
+    });
+    chosen = opts[0];
+  }
+  s.dr=chosen.dr; s.dc=chosen.dc;
+  s.r=wrap(s.r+s.dr,ROWS); s.c=wrap(s.c+s.dc,COLS);
+
+  if (tick%350<200 && (s.mode==='scatter'||s.mode==='chase')) s.mode='chase';
+  else if (s.mode==='chase') s.mode='scatter';
 }
 
-function checkHits(){
-  for(const s of skeletons){
-    if(s.mode==='house')continue;
-    if(s.r===bird.r&&s.c===bird.c){
-      if(s.mode==='frightened'){s.mode='eaten';score+=300;hud();}
-      else if(s.mode!=='eaten'){birdDie();return;}
+function checkHits() {
+  for (const s of skeletons) {
+    if (s.mode==='house') continue;
+    if (s.r===bird.r && s.c===bird.c) {
+      if (s.mode==='frightened') { s.mode='eaten'; score+=300; hud(); }
+      else if (s.mode!=='eaten') { birdDie(); return; }
     }
   }
 }
-function birdDie(){
-  if(--lives<=0){state='gameover';msg('Game Over — What a session though! 🍊');FUNK.stop();}
-  else{state='dead';msg('💥 Oof!');setTimeout(()=>{spawnBird();spawnSkeletons();state='playing';msg('');},1800);}
+
+function birdDie() {
+  if (--lives <= 0) {
+    state='gameover'; msg('Game Over — What a session though! 🍊');
+    FUNK.stop();
+  } else {
+    state='dead'; msg('💥 Oof!');
+    setTimeout(() => { spawnBird(); spawnSkeletons(); state='playing'; msg(''); }, 1800);
+  }
   hud();
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  DRAWING
 // ═══════════════════════════════════════════════════════════════
-function draw(){
-  // cobalt blue base
-  ctx.fillStyle=C.bg;
-  ctx.fillRect(0,0,CW,CH);
-  drawBorder();   // illustrations outside the maze
+function draw() {
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
   drawMaze();
   drawDots();
-  fruits.forEach(drawFruitItem);
+  if (fruitCell) drawFruit();
   skeletons.forEach(drawSkeleton);
-  if(state!=='dead')drawBird();
+  if (state !== 'dead') drawBird();
 }
 
-// ── Brand illustrations in the PAD border around the maze ──────
-function drawBorder(){
-  const W=CW, H=CH;
-  const MX=PAD, MY=PAD, MW=COLS*CELL, MH=ROWS*CELL;
-
-  // Helper: draw image contained within a rect, anchored to one corner
-  function blit(img, x, y, w, h, alpha=1){
-    if(!img)return;
-    ctx.save();ctx.globalAlpha=alpha;
-    ctx.drawImage(img,x,y,w,h);
-    ctx.restore();
+function drawMaze() {
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+    if (map[r][c]===1) {
+      ctx.fillStyle = C.wall;
+      ctx.fillRect(c*CELL,r*CELL,CELL,CELL);
+      ctx.save();
+      ctx.strokeStyle = C.wallGlow;
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = C.wallGlow;
+      ctx.shadowBlur = 5;
+      ctx.strokeRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+      ctx.restore();
+    }
   }
+}
 
-  // ── Bottom-left: orange juice splash ──
-  blit(IMGS.juice, -10, H-195, 210, 200, 0.92);
-
-  // ── Bottom-right: Juice Trip can ──
-  if(IMGS.can){
-    const cH=210, cW=cH*(IMGS.can.naturalWidth/IMGS.can.naturalHeight);
-    blit(IMGS.can, W-cW+10, H-cH+15, cW, cH, 0.9);
+function drawDots() {
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+    const cx=c*CELL+CELL/2, cy=r*CELL+CELL/2;
+    if (map[r][c]===2) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx,cy,2.8,0,Math.PI*2);
+      ctx.fillStyle=C.dot; ctx.shadowColor=C.dot; ctx.shadowBlur=8; ctx.fill();
+      ctx.restore();
+    } else if (map[r][c]===3) {
+      const p = 0.85+0.2*Math.sin(Date.now()/170);
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx,cy,5.5*p,0,Math.PI*2);
+      ctx.fillStyle=C.power; ctx.shadowColor=C.power; ctx.shadowBlur=20; ctx.fill();
+      ctx.restore();
+    }
   }
+}
 
-  // ── Top-left: flames / phone ──
-  blit(IMGS.flames, -15, -15, 230, 175, 0.88);
-
-  // ── Top-right: sunglasses ──
-  blit(IMGS.shades, W-230, -15, 230, 175, 0.88);
-
-  // ── Left side: cockatoo peace-sign bird ──
-  if(IMGS.bird){
-    // Crop to just the bird (right-centre of the landscape image)
-    const iw=IMGS.bird.naturalWidth, ih=IMGS.bird.naturalHeight;
-    const srcX=iw*0.27, srcW=iw*0.46;
-    const dH=230, dW=dH*(srcW/ih);
-    ctx.save();ctx.globalAlpha=0.92;
-    ctx.drawImage(IMGS.bird, srcX,0,srcW,ih, MX-dW*0.55, MY+MH/2-dH/2, dW, dH);
-    ctx.restore();
-  }
-
-  // ── Right side: swirl Polaroid scene ──
-  if(IMGS.swirl){
-    const sH=200, sW=sH*(IMGS.swirl.naturalWidth/IMGS.swirl.naturalHeight);
-    ctx.save();ctx.globalAlpha=0.88;
-    ctx.drawImage(IMGS.swirl, MX+MW-sW*0.45, MY+MH/2-sH/2, sW, sH);
-    ctx.restore();
-  }
-
-  // ── Neon orange frame around the maze ──
+function drawFruit() {
+  const cx=fruitCell.c*CELL+CELL/2, cy=fruitCell.r*CELL+CELL/2;
   ctx.save();
-  ctx.strokeStyle='#FE5621';ctx.lineWidth=2.5;
-  ctx.shadowColor='#FE5621';ctx.shadowBlur=14;
-  ctx.strokeRect(MX, MY, MW, MH);
+  ctx.beginPath(); ctx.arc(cx,cy,CELL*0.54,0,Math.PI*2);
+  ctx.fillStyle='rgba(197,242,0,0.10)'; ctx.shadowColor='#c5f200'; ctx.shadowBlur=14; ctx.fill();
   ctx.restore();
+  ctx.font=`${CELL-5}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(fruitCell.emoji,cx,cy);
 }
 
-function drawMaze(){
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    if(map[r][c]===1){
-      ctx.fillStyle=C.wall;
-      ctx.fillRect(px(c),py(r),CELL,CELL);
-      ctx.save();ctx.strokeStyle=C.wallGlow;ctx.lineWidth=1.5;ctx.shadowColor=C.wallGlow;ctx.shadowBlur=5;
-      ctx.strokeRect(px(c)+1,py(r)+1,CELL-2,CELL-2);ctx.restore();
-    }
-  }
-}
+// ──────────────────────────────────────────────
+//  SKELETON GHOST
+// ──────────────────────────────────────────────
+function drawSkeleton(s) {
+  if (s.mode==='house') return;
+  const cx=s.c*CELL+CELL/2, cy=s.r*CELL+CELL/2;
+  const R=CELL/2-1; // ~11px
 
-function drawDots(){
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const x=cx(c),y=cy(r);
-    if(map[r][c]===2){
-      ctx.save();ctx.beginPath();ctx.arc(x,y,2.8,0,Math.PI*2);ctx.fillStyle=C.dot;ctx.shadowColor=C.dot;ctx.shadowBlur=8;ctx.fill();ctx.restore();
-    }else if(map[r][c]===3){
-      const p=0.85+0.2*Math.sin(Date.now()/170);
-      ctx.save();ctx.beginPath();ctx.arc(x,y,5.5*p,0,Math.PI*2);ctx.fillStyle=C.power;ctx.shadowColor=C.power;ctx.shadowBlur=20;ctx.fill();ctx.restore();
-    }
-  }
-}
+  ctx.save();
+  ctx.translate(cx,cy);
 
-function drawFruitItem(f){
-  const x=cx(f.c), y=cy(f.r);
-  // Pulse glow
-  const p=0.85+0.15*Math.sin(Date.now()/220+f.r+f.c);
-  ctx.save();ctx.beginPath();ctx.arc(x,y,CELL*0.5*p,0,Math.PI*2);
-  ctx.fillStyle='rgba(197,242,0,0.10)';ctx.shadowColor='#c5f200';ctx.shadowBlur=12;ctx.fill();ctx.restore();
-  ctx.font=`${CELL-4}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(f.emoji,x,y);
-}
-
-// ── Skeleton ghost ──────────────────────────────────────────────
-function drawSkeleton(s){
-  if(s.mode==='house')return;
-  const x=cx(s.c), y=cy(s.r), R=CELL/2-1;
-  ctx.save();ctx.translate(x,y);
-  if(s.mode==='eaten'){
-    [-0.3,0.3].forEach(ox=>{ctx.beginPath();ctx.arc(R*ox,0,R*0.18,0,Math.PI*2);ctx.fillStyle=C.skullGlow[s.ci];ctx.shadowColor=C.skullGlow[s.ci];ctx.shadowBlur=8;ctx.fill();});
-    ctx.restore();return;
-  }
-  const fr=s.mode==='frightened';
-  const flash=fr&&s.frighTimer<70&&Math.floor(s.frighTimer/8)%2===0;
-  const bCol=fr?(flash?'#9999dd':'#4433aa'):C.bone;
-  const glow=fr?'#4433aa':C.skullGlow[s.ci];
-  ctx.beginPath();ctx.arc(0,-R*0.18,R*0.72,Math.PI,0);ctx.lineTo(R*0.72,R*0.28);ctx.quadraticCurveTo(R*0.72,R*0.52,R*0.5,R*0.52);ctx.lineTo(-R*0.5,R*0.52);ctx.quadraticCurveTo(-R*0.72,R*0.52,-R*0.72,R*0.28);ctx.closePath();
-  ctx.fillStyle=bCol;ctx.shadowColor=glow;ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#111';ctx.lineWidth=1;ctx.stroke();
-  if(!fr){
-    [[-0.3,-0.22],[0.3,-0.22]].forEach(([ox,oy])=>{
-      ctx.beginPath();ctx.moveTo(R*ox,R*(oy-0.17));ctx.lineTo(R*(ox-0.19),R*(oy+0.12));ctx.lineTo(R*(ox+0.19),R*(oy+0.12));ctx.closePath();ctx.fillStyle='#0a0a0a';ctx.fill();
-      ctx.beginPath();ctx.arc(R*ox,R*(oy+0.02),R*0.06,0,Math.PI*2);ctx.fillStyle=C.skullGlow[s.ci];ctx.fill();
+  if (s.mode==='eaten') {
+    // Floating skull fragment — just glowing eyes
+    [-0.3,0.3].forEach(ox => {
+      ctx.beginPath(); ctx.arc(R*ox, 0, R*0.18, 0, Math.PI*2);
+      ctx.fillStyle=C.skullGlow[s.ci]; ctx.shadowColor=C.skullGlow[s.ci]; ctx.shadowBlur=8; ctx.fill();
     });
-    ctx.beginPath();ctx.moveTo(0,R*0.06);ctx.lineTo(-R*0.11,R*0.22);ctx.lineTo(R*0.11,R*0.22);ctx.closePath();ctx.fillStyle='#0a0a0a';ctx.fill();
-    ctx.fillStyle=bCol;ctx.strokeStyle='#333';ctx.lineWidth=0.6;
-    [-0.33,-0.11,0.11,0.33].forEach(tx=>{ctx.beginPath();ctx.rect(R*tx-R*0.11,R*0.35,R*0.21,R*0.18);ctx.fill();ctx.stroke();});
-    ctx.strokeStyle=bCol;ctx.lineWidth=1.4;ctx.shadowColor=glow;ctx.shadowBlur=5;
-    ctx.beginPath();ctx.moveTo(0,R*0.52);ctx.lineTo(0,R*0.95);ctx.stroke();
-    [[0.58,0.62,0.72],[0.68,0.74,0.86],[0.80,0.86,0.95]].forEach(([y1,mid,y2])=>[-1,1].forEach(side=>{ctx.beginPath();ctx.moveTo(0,R*y1);ctx.quadraticCurveTo(R*side*0.38,R*mid,R*side*0.48,R*y2);ctx.stroke();}));
-    ctx.shadowBlur=0;
-  }else{
-    ctx.strokeStyle='#ff6eb4';ctx.lineWidth=1.6;
-    [[-0.3,-0.22],[0.3,-0.22]].forEach(([ox,oy])=>{ctx.beginPath();ctx.moveTo(R*(ox-0.16),R*(oy-0.15));ctx.lineTo(R*(ox+0.16),R*(oy+0.15));ctx.moveTo(R*(ox+0.16),R*(oy-0.15));ctx.lineTo(R*(ox-0.16),R*(oy+0.15));ctx.stroke();});
-    ctx.strokeStyle='#ff6eb4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-R*0.45,R*0.35);ctx.quadraticCurveTo(-R*0.2,R*0.5,0,R*0.38);ctx.quadraticCurveTo(R*0.2,R*0.26,R*0.45,R*0.38);ctx.stroke();
+    ctx.restore(); return;
   }
+
+  const frightened = s.mode==='frightened';
+  const flash = frightened && s.frighTimer<70 && Math.floor(s.frighTimer/8)%2===0;
+  const boneCol = frightened ? (flash?'#9999dd':'#4433aa') : C.bone;
+  const glow    = frightened ? '#4433aa' : C.skullGlow[s.ci];
+
+  // ── Skull cranium ──
+  ctx.beginPath();
+  ctx.arc(0, -R*0.18, R*0.72, Math.PI, 0);         // top dome
+  ctx.lineTo(R*0.72, R*0.28);                        // right cheek
+  ctx.quadraticCurveTo(R*0.72, R*0.52, R*0.5, R*0.52);
+  ctx.lineTo(-R*0.5, R*0.52);
+  ctx.quadraticCurveTo(-R*0.72, R*0.52, -R*0.72, R*0.28);
+  ctx.closePath();
+  ctx.fillStyle = boneCol;
+  ctx.shadowColor = glow;
+  ctx.shadowBlur = 12;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  if (!frightened) {
+    // ── Eye sockets (hollow dark triangles) ──
+    [[-0.3, -0.22],[0.3, -0.22]].forEach(([ox,oy]) => {
+      ctx.beginPath();
+      ctx.moveTo(R*ox, R*(oy-0.17));
+      ctx.lineTo(R*(ox-0.19), R*(oy+0.12));
+      ctx.lineTo(R*(ox+0.19), R*(oy+0.12));
+      ctx.closePath();
+      ctx.fillStyle='#0a0a0a'; ctx.fill();
+      // Neon gleam in socket
+      ctx.beginPath(); ctx.arc(R*ox, R*(oy+0.02), R*0.06, 0, Math.PI*2);
+      ctx.fillStyle=C.skullGlow[s.ci]; ctx.fill();
+    });
+
+    // ── Nasal cavity ──
+    ctx.beginPath();
+    ctx.moveTo(0, R*0.06);
+    ctx.lineTo(-R*0.11, R*0.22);
+    ctx.lineTo(R*0.11, R*0.22);
+    ctx.closePath();
+    ctx.fillStyle='#0a0a0a'; ctx.fill();
+
+    // ── Teeth ──
+    ctx.fillStyle=boneCol;
+    ctx.strokeStyle='#333'; ctx.lineWidth=0.6;
+    const tW=R*0.22, tH=R*0.18, tY=R*0.35;
+    [-0.33, -0.11, 0.11, 0.33].forEach(tx => {
+      ctx.beginPath();
+      ctx.rect(R*tx - tW/2, tY, tW, tH);
+      ctx.fill(); ctx.stroke();
+    });
+
+    // ── Rib-like bottom (ghost-skirt made of bones) ──
+    ctx.strokeStyle=boneCol; ctx.lineWidth=1.4;
+    ctx.shadowColor=glow; ctx.shadowBlur=6;
+    // Spine
+    ctx.beginPath(); ctx.moveTo(0,R*0.52); ctx.lineTo(0,R*0.95); ctx.stroke();
+    // 3 pairs of ribs
+    [[0.58,0.62,0.72],[0.68,0.72,0.85],[0.80,0.85,0.95]].forEach(([y1,mid,y2],i) => {
+      [-1,1].forEach(side => {
+        ctx.beginPath();
+        ctx.moveTo(0, R*y1);
+        ctx.quadraticCurveTo(R*side*0.38, R*mid, R*side*0.48, R*y2);
+        ctx.stroke();
+      });
+    });
+    ctx.shadowBlur=0;
+
+  } else {
+    // Frightened: X eyes on skull
+    ctx.strokeStyle='#ff6eb4'; ctx.lineWidth=1.6;
+    [[-0.3,-0.22],[0.3,-0.22]].forEach(([ox,oy]) => {
+      ctx.beginPath();
+      ctx.moveTo(R*(ox-0.16), R*(oy-0.15));
+      ctx.lineTo(R*(ox+0.16), R*(oy+0.15));
+      ctx.moveTo(R*(ox+0.16), R*(oy-0.15));
+      ctx.lineTo(R*(ox-0.16), R*(oy+0.15));
+      ctx.stroke();
+    });
+    // Cracked jaw squiggle
+    ctx.strokeStyle='#ff6eb4'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(-R*0.45, R*0.35);
+    ctx.quadraticCurveTo(-R*0.2, R*0.5, 0, R*0.38);
+    ctx.quadraticCurveTo(R*0.2, R*0.26, R*0.45, R*0.38);
+    ctx.stroke();
+  }
+
   ctx.restore();
 }
 
-// ── Cockatoo head (Pac-Man style) ───────────────────────────────
-function drawBird(){
-  const x=cx(bird.c), y=cy(bird.r), R=CELL/2-1;
-  let angle=0;
-  if(bird.dc===1)angle=0;else if(bird.dc===-1)angle=Math.PI;
-  else if(bird.dr===-1)angle=-Math.PI/2;else if(bird.dr===1)angle=Math.PI/2;
-  const mo=Math.max(0.02,bird.mouth);
-  ctx.save();ctx.translate(x,y);
+// ──────────────────────────────────────────────
+//  JUICE TRIP COCKATOO (Pac-Man character)
+//  Based on Mountain Culture mascot:
+//    dark indigo body · yellow spiky crown
+//    red beak · blue sunglasses · flame streaks
+// ──────────────────────────────────────────────
+function drawBird() {
+  const cx=bird.c*CELL+CELL/2, cy=bird.r*CELL+CELL/2;
+  const R=CELL/2-1; // ~11px
+  const mo=Math.max(0.01, bird.mouth); // mouth open fraction (0..0.28)
 
-  // Yellow spiky crest (world-space, always up)
-  const spikes=[{x:-R*0.26,h:R*0.55,w:R*0.10},{x:0,h:R*0.72,w:R*0.13},{x:R*0.26,h:R*0.52,w:R*0.10}];
-  const cBase=-R*0.90;
-  spikes.forEach(sp=>{
-    ctx.beginPath();ctx.moveTo(sp.x-sp.w,cBase);ctx.lineTo(sp.x,cBase-sp.h);ctx.lineTo(sp.x+sp.w,cBase);ctx.closePath();
-    ctx.fillStyle='#FFD700';ctx.shadowColor='#c5f200';ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#000';ctx.lineWidth=0.8;ctx.stroke();
+  // facing angle for body rotation
+  let angle=0;
+  if (bird.dc===1) angle=0;
+  else if (bird.dc===-1) angle=Math.PI;
+  else if (bird.dr===-1) angle=-Math.PI/2;
+  else if (bird.dr===1)  angle=Math.PI/2;
+
+  ctx.save();
+  ctx.translate(cx,cy);
+
+  // ── CREST (always upright in world space, drawn before body rotation) ──
+  const spikes = [
+    {x:-R*0.28, h:R*0.52, w:R*0.10},
+    {x: 0,      h:R*0.70, w:R*0.12},
+    {x: R*0.28, h:R*0.50, w:R*0.10},
+  ];
+  const cBase = -R*0.88; // top of bird circle
+  spikes.forEach(sp => {
+    ctx.beginPath();
+    ctx.moveTo(sp.x - sp.w, cBase);
+    ctx.lineTo(sp.x, cBase - sp.h);
+    ctx.lineTo(sp.x + sp.w, cBase);
+    ctx.closePath();
+    ctx.fillStyle = C.birdCrest;
+    ctx.shadowColor = '#c5f200';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
   });
 
+  // ── BODY (rotate to face movement direction) ──
   ctx.rotate(angle);
 
-  // Dark navy head
-  ctx.beginPath();ctx.arc(0,0,R,mo*Math.PI,(2-mo)*Math.PI);ctx.lineTo(0,0);
-  ctx.fillStyle='#1a1060';ctx.shadowColor='#3a22cc';ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;
-  ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=1;ctx.stroke();
+  // Dark indigo body (Pac-Man mouth shape)
+  ctx.beginPath();
+  ctx.arc(0,0,R, mo*Math.PI, (2-mo)*Math.PI);
+  ctx.lineTo(0,0);
+  ctx.fillStyle = C.birdBody; // '#1a1060'
+  ctx.shadowColor = '#3a22cc';
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // Red flame streaks
-  ctx.save();ctx.globalAlpha=0.6;ctx.strokeStyle='#FF3300';ctx.lineWidth=1.2;ctx.lineCap='round';
-  [[-0.55,0.15,-0.15,0.48],[-0.62,-0.12,-0.22,0.28]].forEach(([x1,y1,x2,y2])=>{
-    ctx.beginPath();ctx.moveTo(R*x1,R*y1);ctx.quadraticCurveTo(R*(x1+x2)/2,R*((y1+y2)/2-0.1),R*x2,R*y2);ctx.stroke();
-  });ctx.restore();
-
-  // Blue sunglasses (two lenses)
-  ctx.save();ctx.globalAlpha=0.9;ctx.strokeStyle='#000';ctx.lineWidth=0.7;
-  [[-0.28],[0.08]].forEach(([oy])=>{ctx.beginPath();ctx.ellipse(R*0.22,R*oy,R*0.21,R*0.12,oy<0?-0.15:0.15,0,Math.PI*2);ctx.fillStyle='#1E90FF';ctx.fill();ctx.stroke();});
-  ctx.strokeStyle='#000';ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(R*0.22,-R*0.16);ctx.lineTo(R*0.22,-R*0.04);ctx.stroke();
+  // Red flame streak accents (like on the Juice Trip can art)
+  ctx.save();
+  ctx.globalAlpha = 0.65;
+  ctx.strokeStyle = C.birdFlame;
+  ctx.lineWidth = 1.3;
+  ctx.lineCap = 'round';
+  [
+    [-0.55, 0.15, -0.15, 0.5],
+    [-0.65,-0.10, -0.25, 0.3],
+    [-0.45, 0.42,  0.05, 0.6],
+  ].forEach(([x1,y1,x2,y2]) => {
+    ctx.beginPath();
+    ctx.moveTo(R*x1, R*y1);
+    ctx.quadraticCurveTo(R*(x1+x2)/2, R*((y1+y2)/2 - 0.12), R*x2, R*y2);
+    ctx.stroke();
+  });
   ctx.restore();
 
-  // Red beak mouth
-  if(mo>0.04){
-    ctx.beginPath();ctx.moveTo(R*0.5,mo*R*1.1);ctx.lineTo(R*1.12,0);ctx.lineTo(R*0.5,-mo*R*1.1);ctx.closePath();
-    ctx.fillStyle='#FF3300';ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=0.8;ctx.stroke();
+  // Black outline on body
+  ctx.beginPath();
+  ctx.arc(0,0,R, mo*Math.PI, (2-mo)*Math.PI);
+  ctx.lineTo(0,0);
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Blue sunglasses — 2 lenses on the face (front-right of body)
+  // Lens positions: upper and lower on the face side (+x = facing)
+  ctx.save();
+  ctx.fillStyle = C.birdShades;
+  ctx.globalAlpha = 0.88;
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 0.7;
+  // upper lens
+  ctx.beginPath();
+  ctx.ellipse(R*0.22, -R*0.30, R*0.20, R*0.12, -0.2, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // lower lens
+  ctx.beginPath();
+  ctx.ellipse(R*0.22, R*0.06, R*0.20, R*0.12, 0.2, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // bridge
+  ctx.strokeStyle='#000'; ctx.lineWidth=0.9; ctx.globalAlpha=0.9;
+  ctx.beginPath(); ctx.moveTo(R*0.22,-R*0.18); ctx.lineTo(R*0.22,-R*0.06); ctx.stroke();
+  ctx.restore();
+
+  // Red beak (mouth cavity fill — visible only when open)
+  if (mo > 0.04) {
+    ctx.beginPath();
+    ctx.moveTo(R*0.5,  mo*R*1.1);
+    ctx.lineTo(R*1.12, 0);
+    ctx.lineTo(R*0.5, -mo*R*1.1);
+    ctx.closePath();
+    ctx.fillStyle = C.birdBeak;
+    ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 0.8; ctx.stroke();
   }
+
   ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  LOOP
+//  GAME LOOP
 // ═══════════════════════════════════════════════════════════════
-function loop(ts){
+function loop(ts) {
   requestAnimationFrame(loop);
-  if(ts-lastTs<1000/FPS){draw();return;}
-  lastTs=ts;step();draw();
+  if (ts - lastTs < 1000/FPS) { draw(); return; }
+  lastTs = ts;
+  step();
+  draw();
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  INPUT
 // ═══════════════════════════════════════════════════════════════
-document.addEventListener('keydown',e=>{
-  if((state==='ready'||state==='gameover')&&(e.key==='Enter'||e.key===' ')){
-    if(state==='gameover')initGame();state='playing';msg('');FUNK.start();return;
+document.addEventListener('keydown', e => {
+  if ((state==='ready'||state==='gameover') && (e.key==='Enter'||e.key===' ')) {
+    if (state==='gameover') initGame();
+    state='playing'; msg('');
+    FUNK.start();
+    return;
   }
-  const DIR={'ArrowUp':[-1,0],'w':[-1,0],'ArrowDown':[1,0],'s':[1,0],'ArrowLeft':[0,-1],'a':[0,-1],'ArrowRight':[0,1],'d':[0,1]};
-  if(DIR[e.key]){[bird.qdr,bird.qdc]=DIR[e.key];e.preventDefault();}
+  const DIR = {
+    'ArrowUp':[-1,0],'w':[-1,0],
+    'ArrowDown':[1,0],'s':[1,0],
+    'ArrowLeft':[0,-1],'a':[0,-1],
+    'ArrowRight':[0,1],'d':[0,1],
+  };
+  if (DIR[e.key]) {
+    [bird.qdr,bird.qdc]=DIR[e.key];
+    e.preventDefault();
+  }
 });
+
 let tx=null,ty=null;
 canvas.addEventListener('touchstart',e=>{
-  tx=e.touches[0].clientX;ty=e.touches[0].clientY;
-  if(state==='ready'||state==='gameover'){if(state==='gameover')initGame();state='playing';msg('');FUNK.start();}
+  tx=e.touches[0].clientX; ty=e.touches[0].clientY;
+  if (state==='ready'||state==='gameover') {
+    if (state==='gameover') initGame();
+    state='playing'; msg(''); FUNK.start();
+  }
 },{passive:true});
 canvas.addEventListener('touchend',e=>{
   if(tx==null)return;
-  const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
   if(Math.abs(dx)>Math.abs(dy)){bird.qdr=0;bird.qdc=dx>0?1:-1;}
   else{bird.qdc=0;bird.qdr=dy>0?1:-1;}
   tx=ty=null;
 },{passive:true});
 
 // ═══════════════════════════════════════════════════════════════
-//  BOOT
+//  GO
 // ═══════════════════════════════════════════════════════════════
-loadImages(()=>{
-  msg('Press ENTER or Space to start');
-  initGame();
-  requestAnimationFrame(loop);
-});
+initGame();
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
